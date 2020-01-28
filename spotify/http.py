@@ -274,11 +274,13 @@ class SpotifyClient:
     async def get(self, endpoint):
         res = await self._client.get(f'{BASE_URL}{endpoint}', headers=self._headers)
 
-        if s := res.headers.get('Retry-After'):
+        s = res.headers.get('Retry-After')
+        if s:
             await asyncio.sleep(int(s))
             return await self._try_again(self.get(endpoint))
 
-        if 'error' in (d := await res.json()):
+        d = await res.json()
+        if 'error' in d:
             if d['error']['status'] == 401:
                 return await self._try_again(self.get(endpoint))
         return res
