@@ -20,6 +20,11 @@ class Artist:
         self.name = data.pop('name')
         self.type = data.pop('type')
         self.uri = data.pop('uri')
+        self.genres = data.pop('genres', [])
+
+    async def fetch_albums(self):
+        res = await (await self._client.get(f'/artists/{self.id}/albums')).json()
+        return [Album(self._client, d) for d in res['items']]
 
     def __eq__(self, other):
         if not isinstance(other, Artist):
@@ -49,7 +54,8 @@ class Image:
 class Album:
     def __init__(self, client, data):
         self._client = client
-        self._update(data)
+        if data is not None:
+            self._update(data)
 
     def _update(self, data):
         self.type = data.pop('album_type')
@@ -69,6 +75,10 @@ class Album:
         self.total_tracks = data.pop('total_tracks')
         self.type = data.pop('type')
         self.uri = data.pop('uri')
+
+    async def fetch_songs(self):
+        res = await (await self._client.get(f'/albums/{self.id}/tracks')).json()
+        return [Track(self._client, d) for d in res['items']]
 
     def __eq__(self, other):
         if not isinstance(other, Album):
@@ -205,7 +215,7 @@ class Track:
         return AudioAnalysis(self._client, await res.json())
 
     def _update(self, data):
-        self.album = Album(self._client, data.pop('album'))
+        self.album = Album(self._client, data.pop('album', None))
         self.artists = [Artist(self._client, a) for a in data.pop('artists')]
         self.id = data.pop('id')
         self.name = data.pop('name')
@@ -245,6 +255,12 @@ class SpotifyClient:
             'Authorization': f'Basic {self._auth.decode("utf8")}'
         }
         self._headers = {}
+        self.loop = asyncio.get_event_loop()
+        self.loop.add_signal_handler(signal.SIGINT, self.close)
+        self.loop.add_signal_handler(signal.SIGTERM, self.close)
+
+    def close(self):
+        self.loop.stop()
 
     async def _new_token(self):
         res = await self._client.post(
@@ -303,3 +319,11 @@ class SpotifyClient:
 
         res = await self.get(f'/tracks/{track_id}')
         return Track(self, await res.json())
+
+    async def fetch_artist(self, *, artist_id):
+        res = await self.get(f'/artists/{artist_id}')
+        return Artist(self, await res.json())
+
+    async def fetch_album(self, *, album_id):
+        res = await self.get(f'/albums/{album_id}')
+        return Album(self, await res.json())
