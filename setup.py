@@ -1,11 +1,16 @@
 from setuptools import setup
+import setuptools
 
 
 setup(
-    name='spotify.py',
-    version='0.0.1',
+    name='spotifypy',
+    version='0.0.2',
     author='MrWalrus',
-    description=('No', 'description'),
+    description='No description yet',
     license='MIT',
-    packages=['spotify', 'aiohttp']
+    packages=setuptools.find_packages(),
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+    ]
 )

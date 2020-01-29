@@ -227,6 +227,12 @@ class Track:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f'<Track name={self.name} artists={"[" + ", ".join(x.name for x in self.artists) + "]"}>'
+
 
 class SpotifyClient:
     def __init__(self, client_id, client_secret):
@@ -239,12 +245,6 @@ class SpotifyClient:
             'Authorization': f'Basic {self._auth.decode("utf8")}'
         }
         self._headers = {}
-        self.loop = asyncio.get_event_loop()
-        self.loop.add_signal_handler(signal.SIGINT, lambda: self.close())
-        self.loop.add_signal_handler(signal.SIGTERM, lambda: self.close())
-
-    def close(self):
-        self.loop.stop()
 
     async def _new_token(self):
         res = await self._client.post(
