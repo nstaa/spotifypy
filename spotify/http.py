@@ -9,6 +9,44 @@ import signal
 BASE_URL = 'https://api.spotify.com/v1'
 
 
+class User:
+    def __init__(self, client, data):
+        self._client = client
+        self._update(data)
+
+    def _update(self, data):
+        self.name = data.pop('display_name')
+        self.url = data.pop('external_urls').pop('spotify')
+        self.followers = data.pop('followers')['total']
+        self.id = data.pop('id')
+        self.images = [Image(d) for d in data.pop('images')]
+        self.type = data.pop('type')
+        self.uri = data.pop('uri')
+
+    async def playlists(self):
+        res = await self._client.get(f'/users/{self.id}/playlists')
+        return Playlist(self._client, await res.json())
+
+
+class Playlist:
+    def __init__(self, client, data):
+        self._client = client
+        self._update(data['items'])
+
+    def _update(self, data):
+        self.collaborative = data.pop('collaborative')
+        self.description = data.pop('description')
+        self.url = data.pop('external_urls').pop('spotify')
+        self.id = data.pop('id')
+        self.images = [Image(d) for d in data.pop('images')]
+        self.name = data.pop('name')
+        self.owner = User(self._client, data.pop('user'))
+        self.public = data.pop('public')
+        self.tracks = [Track(self._client, d) for d in data.pop('tracks')]
+        self.type = data.pop('type')
+        self.uri = data.pop('uri')
+
+
 class Artist:
     def __init__(self, client, data):
         self._client = client
@@ -327,3 +365,7 @@ class SpotifyClient:
     async def fetch_album(self, *, album_id):
         res = await self.get(f'/albums/{album_id}')
         return Album(self, await res.json())
+
+    async def fetch_user(self, *, user_id):
+        res = await self.get(f'/users/{user_id}')
+        return User(self, await res.json())
